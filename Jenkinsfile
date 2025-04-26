@@ -1,47 +1,34 @@
-pipeline {  
-agent any  
+pipeline {
+    agent any
 
-environment {  
-    DOCKER_CREDENTIAL_ID = 'dockerhub-credentials' // Jenkins credentials id  
-    DOCKER_IMAGE = 'deepakmanghani/my-flask-app:latest'  
-    GIT_REPO_URL = 'https://github.com/deepakmanghani1511/Deeps-Test-Set5.git'  
-}  
+    environment {
+        DOCKER_IMAGE = 'deepakmanghani/flask-docker-app'
+        DOCKERHUB_CREDENTIALS_ID = 'dockerhub-credentials' // Jenkins credentials ID
+    }
 
-stages {  
-    stage('Checkout') {  
-        steps {  
-            // Clone the Git repository  
-            git branch: 'main', url: "${GIT_REPO_URL}"  
-        }  
-    }  
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/deepakmanghani1511/Deeps-Test-Set5.git'
+            }
+        }
 
-    stage('Build Docker Image') {  
-        steps {  
-            // Build the Docker image  
-            script {  
-                docker.build("${DOCKER_IMAGE}")  
-            }  
-        }  
-    }  
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    docker.build("${DOCKER_IMAGE}:latest")
+                }
+            }
+        }
 
-    stage('Push Docker Image') {  
-        steps {  
-            // Login to Docker Hub  
-            withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIAL_ID}", usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {  
-                bat "echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin"  
-            }  
-            // Push the Docker image to Docker Hub  
-            bat "docker push %DOCKER_IMAGE%"  
-        }  
-    }  
-}  
-
-post {  
-    success {  
-        echo 'Pipeline completed successfully!'  
-    }  
-    failure {  
-        echo 'Pipeline failed!'  
-    }  
-}  
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', "${DOCKERHUB_CREDENTIALS_ID}") {
+                        docker.image("${DOCKER_IMAGE}:latest").push()
+                    }
+                }
+            }
+        }
+    }
 }
